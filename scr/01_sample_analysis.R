@@ -284,3 +284,15 @@ pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_gene_HigRes2.pdf",width = 4
 # Heatmap(mat_scale_gene,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
 Heatmap(mat_scale_gene3,cluster_columns = F,cluster_rows = T,show_column_names = F)
 dev.off()
+
+# try to plot the data as a scatter plot using the prediction values to smoothe the curve
+df_model %>%
+  unnest(data) %>%
+  ggplot(aes(x=tp,y=value,col=treat)) +
+  geom_point(shape=1) +
+  geom_line(data = df_predict %>% separate(sample,into = c("geneName","treat"),"_"),aes(x=tp,y=pred,col=treat),linetype = "dashed") +
+  facet_wrap(~geneName,scales = "free") +
+  theme_bw() +
+  theme(strip.background = element_blank())+
+  scale_color_manual(values = c("black","red"))
+ggsave("../../out/plot/01_lanni_qpcr_gene_HigRes.pdf",height = 9,width = 9)
