@@ -166,31 +166,19 @@ heatmap_list <- pmap(list(list_mat_scale,names(list_mat_scale)), function(mat_x,
 
 draw(heatmap_list[[1]]+heatmap_list[[2]]+heatmap_list[[3]])
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 list_mat_scale2 <- mat_scale %>%
   data.frame() %>%
   rownames_to_column("sample") %>%
   mutate(dataset = str_extract(sample,"corteccia|ipotalamo|ippocampo"),
-         sample2 = str_remove_all(sample,"_corteccia|_ipotalamo|_ippocampo")) %>%
-  split(.$dataset) %>%
+         sample2 = str_remove_all(sample,"_corteccia|_ipotalamo|_ippocampo"),
+         treat = str_extract(sample,"CTR|DSS"),
+         sample3 = str_remove_all(sample,"CTR_|DSS_")) %>%
+  split(.$treat) %>%
   lapply(function(x){
     mat <- x %>%
       rownames_to_column() %>%
-      select(-c(rowname,dataset,sample)) %>%
-      column_to_rownames("sample2") %>%
+      select(-c(rowname,dataset,sample2,treat,sample)) %>%
+      column_to_rownames("sample3") %>%
       as.matrix()
     
     colnames(mat) <- str_remove(colnames(mat),"X")
@@ -198,95 +186,19 @@ list_mat_scale2 <- mat_scale %>%
   })
 
 # generate the list of heatmaps
-heatmap_list <- pmap(list(list_mat_scale,names(list_mat_scale)), function(mat_x,name_mat) {
+heatmap_list2 <- pmap(list(list_mat_scale2,names(list_mat_scale2)), function(mat_x,name_mat) {
   Heatmap(mat_x, name = name_mat,cluster_columns = F,cluster_rows = F,column_title = name_mat)
 })
 
-draw(heatmap_list[[1]]+heatmap_list[[2]]+heatmap_list[[3]])
-
-pdf("../../out/plot/01_lanni_qpcr_heatmap_raw_sample_brain.pdf",width = 4,height = 5)
-# Heatmap(mat_scale,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale,cluster_columns = F,cluster_rows = F)
-dev.off()
-
-pdf("../../out/plot/01_lanni_qpcr_heatmap_raw_sample2.pdf",width = 4,height = 5)
-# Heatmap(mat_scale,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale,cluster_columns = F,cluster_rows = T)
-dev.off()
-
-# scale the value by gene. keep the different samples alone (gene)
-# 
-mat_scale_gene <- mat %>%
-  rownames_to_column("sample") %>%
-  pivot_longer(names_to = "tp",values_to = "exp",-sample) %>%
-  separate(sample,into = c("geneName","treat"),sep="_",remove = F) %>%
-  group_by(geneName) %>%
-  mutate(exp_scaled = (exp-mean(exp))/sd(exp)) %>%
-  ungroup() %>%
-  select(sample,tp,exp_scaled) %>%
-  pivot_wider(names_from = tp,values_from = exp_scaled) %>%
-  column_to_rownames("sample")%>%
-  as.matrix()
-
-pdf("../../out/plot/01_lanni_qpcr_heatmap_raw_gene.pdf",width = 4,height = 5)
-# Heatmap(mat_scale_gene,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale_gene,cluster_columns = F,cluster_rows = F)
-dev.off()
-
-pdf("../../out/plot/01_lanni_qpcr_heatmap_raw_gene2.pdf",width = 4,height = 5)
-# Heatmap(mat_scale_gene,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale_gene,cluster_columns = F,cluster_rows = T)
-dev.off()
-
-# plot the heatmap usign the predicted values from the model
-mat2 <- df_model %>%
-  unnest(data) %>%
-  mutate(tp = as.factor(tp)) %>%
-  # select(sample,value,tp) %>%
-  group_by(sample,tp) %>%
-  summarise(avg_pred = mean(pred,na.rm = T)) %>%
-  pivot_wider(names_from = tp,values_from = avg_pred) %>%
-  column_to_rownames("sample")
-
-# scale by sample
-mat_scale2 <- t(scale(t(mat2)))
-pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_sample.pdf",width = 4,height = 5)
-# Heatmap(mat_scale,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale2,cluster_columns = F,cluster_rows = F)
-dev.off()
-
-pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_sample2.pdf",width = 4,height = 5)
-# Heatmap(mat_scale,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale2,cluster_columns = F,cluster_rows = T)
-dev.off()
-
-# scale the value by gene. keep the different samples alone (gene)
-# 
-mat_scale_gene2 <- mat2 %>%
-  rownames_to_column("sample") %>%
-  pivot_longer(names_to = "tp",values_to = "exp",-sample) %>%
-  separate(sample,into = c("geneName","treat"),sep="_",remove = F) %>%
-  group_by(geneName) %>%
-  mutate(exp_scaled = (exp-mean(exp))/sd(exp)) %>%
-  ungroup() %>%
-  select(sample,tp,exp_scaled) %>%
-  pivot_wider(names_from = tp,values_from = exp_scaled) %>%
-  column_to_rownames("sample")%>%
-  as.matrix()
-
-pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_gene.pdf",width = 4,height = 5)
-# Heatmap(mat_scale_gene,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale_gene2,cluster_columns = F,cluster_rows = F)
-dev.off()
-
-pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_gene2.pdf",width = 4,height = 5)
-# Heatmap(mat_scale_gene,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale_gene2,cluster_columns = F,cluster_rows = T)
-dev.off()
+draw(heatmap_list2[[1]]+heatmap_list2[[2]])
 
 # test increase the resolution --------------------------------------------
 # now use each model to produce a modelled range per gene
 # x <- genes[1]
+genes <- df_model %>%
+  pull(sample) %>%
+  unique()
+
 df_predict <- lapply(genes,function(x){
   fit <- df_model %>%
     filter(sample == x) %>%
@@ -321,38 +233,62 @@ mat3 <- df_predict %>%
 
 # scale by sample
 mat_scale3 <- t(scale(t(mat3)))
-pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_sample_HigRes.pdf",width = 4,height = 5)
-# Heatmap(mat_scale,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale3,cluster_columns = F,cluster_rows = F,show_column_names = F)
-dev.off()
 
-pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_sample_HigRes2.pdf",width = 4,height = 5)
-# Heatmap(mat_scale,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale3,cluster_columns = F,cluster_rows = T,show_column_names = F)
-dev.off()
-
-# scale the value by gene. keep the different samples alone (gene)
-# 
-mat_scale_gene3 <- mat3 %>%
+list_mat_scale3 <- mat_scale3 %>%
+  data.frame() %>%
   rownames_to_column("sample") %>%
-  pivot_longer(names_to = "tp",values_to = "exp",-sample) %>%
-  separate(sample,into = c("geneName","treat"),sep="_",remove = F) %>%
-  group_by(geneName) %>%
-  mutate(exp_scaled = (exp-mean(exp))/sd(exp)) %>%
-  ungroup() %>%
-  select(sample,tp,exp_scaled) %>%
-  pivot_wider(names_from = tp,values_from = exp_scaled) %>%
-  column_to_rownames("sample")%>%
-  as.matrix()
+  mutate(dataset = str_extract(sample,"corteccia|ipotalamo|ippocampo"),
+         sample2 = str_remove_all(sample,"_corteccia|_ipotalamo|_ippocampo")) %>%
+  split(.$dataset) %>%
+  lapply(function(x){
+    mat <- x %>%
+      rownames_to_column() %>%
+      select(-c(rowname,dataset,sample)) %>%
+      column_to_rownames("sample2") %>%
+      as.matrix()
+    
+    colnames(mat) <- str_remove(colnames(mat),"X")
+    return(mat)
+  })
 
-pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_gene_HigRes.pdf",width = 4,height = 5)
-# Heatmap(mat_scale_gene,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale_gene3,cluster_columns = F,cluster_rows = F,show_column_names = F)
+# generate the list of heatmaps
+heatmap_list3 <- pmap(list(list_mat_scale3,names(list_mat_scale3)), function(mat_x,name_mat) {
+  Heatmap(mat_x, name = name_mat,cluster_columns = F,cluster_rows = F,column_title = name_mat,show_column_names = F)
+})
+
+pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_sample_HigRes2_brain.pdf",width = 10,height = 5)
+# Heatmap(mat_scale,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
+draw(heatmap_list3[[1]]+heatmap_list3[[2]]+heatmap_list3[[3]])
 dev.off()
 
-pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_gene_HigRes2.pdf",width = 4,height = 5)
-# Heatmap(mat_scale_gene,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
-Heatmap(mat_scale_gene3,cluster_columns = F,cluster_rows = T,show_column_names = F)
+# try to split the treatments side by side
+list_mat_scale4 <- mat_scale3 %>%
+  data.frame() %>%
+  rownames_to_column("sample") %>%
+  mutate(dataset = str_extract(sample,"corteccia|ipotalamo|ippocampo"),
+         sample2 = str_remove_all(sample,"_corteccia|_ipotalamo|_ippocampo"),
+         treat = str_extract(sample,"CTR|DSS"),
+         sample3 = str_remove_all(sample,"CTR_|DSS_")) %>%
+  split(.$treat) %>%
+  lapply(function(x){
+    mat <- x %>%
+      rownames_to_column() %>%
+      select(-c(rowname,dataset,sample2,treat,sample)) %>%
+      column_to_rownames("sample3") %>%
+      as.matrix()
+    
+    colnames(mat) <- str_remove(colnames(mat),"X")
+    return(mat)
+  })
+
+# generate the list of heatmaps
+heatmap_list4 <- pmap(list(list_mat_scale4,names(list_mat_scale4)), function(mat_x,name_mat) {
+  Heatmap(mat_x, name = name_mat,cluster_columns = F,cluster_rows = F,column_title = name_mat,show_column_names = F)
+})
+
+pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_sample_HigRes2_brain_split.pdf",width = 8,height = 5)
+# Heatmap(mat_scale,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
+draw(heatmap_list4[[1]]+heatmap_list4[[2]])
 dev.off()
 
 # try to plot the data as a scatter plot using the prediction values to smoothe the curve
@@ -360,9 +296,20 @@ df_model %>%
   unnest(data) %>%
   ggplot(aes(x=tp,y=value,col=treat)) +
   geom_point(shape=1) +
-  geom_line(data = df_predict %>% separate(sample,into = c("geneName","treat"),"_"),aes(x=tp,y=pred,col=treat),linetype = "dashed") +
-  facet_wrap(~geneName,scales = "free") +
+  geom_line(data = df_predict %>% separate(sample,into = c("geneName","treat","dataset"),"_"),aes(x=tp,y=pred,col=treat),linetype = "dashed") +
+  facet_grid(dataset~geneName,scales = "free") +
   theme_bw() +
   theme(strip.background = element_blank())+
   scale_color_manual(values = c("black","red"))
-ggsave("../../out/plot/01_lanni_qpcr_gene_HigRes.pdf",height = 9,width = 9)
+ggsave("../../out/plot/01_lanni_qpcr_gene_HigRes2_brain.pdf",height = 9,width = 12)
+
+df_model %>%
+  unnest(data) %>%
+  ggplot(aes(x=tp,y=value,col=treat)) +
+  geom_point(shape=1) +
+  geom_line(data = df_predict %>% separate(sample,into = c("geneName","treat","dataset"),"_"),aes(x=tp,y=pred,col=treat),linetype = "dashed") +
+  facet_wrap(dataset~geneName,scales = "free",ncol = 7) +
+  theme_bw() +
+  theme(strip.background = element_blank())+
+  scale_color_manual(values = c("black","red"))
+ggsave("../../out/plot/01_lanni_qpcr_gene_HigRes3_brain.pdf",height = 9,width = 12)
