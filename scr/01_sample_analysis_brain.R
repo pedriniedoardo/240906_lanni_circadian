@@ -313,3 +313,14 @@ df_model %>%
   theme(strip.background = element_blank())+
   scale_color_manual(values = c("black","red"))
 ggsave("../../out/plot/01_lanni_qpcr_gene_HigRes3_brain.pdf",height = 9,width = 12)
+
+df_model %>%
+  unnest(data) %>%
+  ggplot(aes(x=tp,y=value,col=treat)) +
+  geom_point(shape=1) +
+  geom_line(data = df_predict %>% separate(sample,into = c("geneName","treat","dataset"),"_"),aes(x=tp,y=pred,col=treat),linetype = "dashed") +
+  facet_wrap(dataset~geneName,scales = "free",ncol = 7) +
+  theme_cowplot() +
+  theme(strip.background = element_blank())+
+  scale_color_manual(values = c("black","red"))
+ggsave("../../out/plot/01_lanni_qpcr_gene_HigRes3_brain2.pdf",height = 9,width = 15)

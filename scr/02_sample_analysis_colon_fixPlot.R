@@ -3,12 +3,13 @@ library(tidyverse)
 library(MetaCycle)
 library(ComplexHeatmap)
 library(viridis)
+library(cowplot)
 
 # read data ---------------------------------------------------------------
 # remove the genes that Cristina highlighted
 df_model <- readRDS("../../out/object/df_model.rds") %>%
   separate(sample,into = c("gene","treat"),"_",remove = F) %>%
-  filter(! gene %in% c("Connexin 43","alpha Sintropin")) %>%
+  filter(! gene %in% c("ROR alpha","Connexin 43","alpha Sintropin")) %>%
   select(-c(treat,gene))
 
 # plotting the data -------------------------------------------------------
@@ -89,6 +90,16 @@ pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_sample_HigRes2_split.pdf",w
 draw(heatmap_list[[1]]+heatmap_list[[2]])
 dev.off()
 
+# reorder genes and plot the data
+heatmap_list2 <- pmap(list(list_mat_scale3,names(list_mat_scale3)), function(mat_x,name_mat) {
+  Heatmap(mat_x[c("NR1D1","BMAL1","CLOCK","PER1","PER2","CRY1","CRY2"),], name = name_mat,cluster_columns = F,cluster_rows = F,column_title = name_mat,show_column_names = F)
+})
+
+pdf("../../out/plot/01_lanni_qpcr_heatmap_prediction_sample_HigRes2_split2.pdf",width = 6,height = 3)
+# Heatmap(mat_scale,cluster_columns = F,cluster_rows = F,col = viridis::viridis(option = "turbo",n = 10))
+draw(heatmap_list2[[1]]+heatmap_list2[[2]])
+dev.off()
+
 # try to plot the data as a scatter plot using the prediction values to smoothe the curve
 df_model %>%
   unnest(data) %>%
@@ -100,3 +111,19 @@ df_model %>%
   theme(strip.background = element_blank())+
   scale_color_manual(values = c("black","red"))
 ggsave("../../out/plot/01_lanni_qpcr_gene_HigRes2.pdf",height = 9,width = 9)
+
+# reorder the genes and change some graphical parameters
+df_model %>%
+  unnest(data) %>%
+  mutate(geneName = factor(geneName,levels = c("PER1","PER2","CRY1","CRY2","NR1D1","BMAL1","CLOCK"))) %>%
+  ggplot(aes(x=tp,y=value,col=treat)) +
+  geom_point(shape=1) +
+  geom_line(data = df_predict %>%
+              separate(sample,into = c("geneName","treat"),"_") %>%
+              mutate(geneName = factor(geneName,levels = c("PER1","PER2","CRY1","CRY2","NR1D1","BMAL1","CLOCK"))),
+            aes(x=tp,y=pred,col=treat),linetype = "dashed") +
+  facet_wrap(~geneName,scales = "free",as.table = F,nrow=2) +
+  theme_cowplot() +
+  theme(strip.background = element_blank())+
+  scale_color_manual(values = c("black","red"))
+ggsave("../../out/plot/01_lanni_qpcr_gene_HigRes3.pdf",height = 6,width = 13)
