@@ -46,7 +46,7 @@ df_lm <- lapply(list_df_full,function(x){
   mutate(p.value.adj = p.adjust(p.value,method = "BH"))
 
 df_lm %>%
-  write_csv("../../data/03_df_lm_additive_colon.csv")  
+  write_csv("../../out/table/03_df_lm_additive_colon.csv")  
 
 # x <- list_df_full_lanni$CLOCK
 df_lm_lanni <- lapply(list_df_full_lanni,function(x){
@@ -64,7 +64,7 @@ df_lm_lanni <- lapply(list_df_full_lanni,function(x){
   mutate(p.value.adj = p.adjust(p.value,method = "BH"))
 
 df_lm_lanni %>%
-  write_csv("../../data/03_df_lm_additive_colon_lanni.csv")  
+  write_csv("../../out/table/03_df_lm_additive_colon_lanni.csv")  
 
 # lapply(list_df_full,function(x){
 #   model <- x %>%
